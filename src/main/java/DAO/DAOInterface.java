@@ -3,14 +3,14 @@ import java.util.List;
 
 public interface DAOInterface<T> {
 
-    void getByID();
-
     List<T> getAll();
+
+    T getByID(int ID);
 
     T insert (T obj);
 
-    boolean update (T obj);
+    //boolean update (T obj);
 
-    boolean delete (T obj);
+    //boolean delete (T obj);
 
 }
