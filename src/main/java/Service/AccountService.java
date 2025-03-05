@@ -28,12 +28,9 @@ public class AccountService {
       
      }
 
-     public boolean login (Account account){
-
-        if (this.accountDAO.validateLogin(account.getUsername(), account.getPassword()) != null) {
-            return true;
-        }
-        return false;
+     public Account login(Account account){
+        // Return the complete account object from the database
+        return this.accountDAO.validateLogin(account.getUsername(), account.getPassword());
      }
     
 }

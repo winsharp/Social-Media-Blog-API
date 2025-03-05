@@ -60,11 +60,11 @@ public class AccountDAO implements DAOInterface<Account> {
     
     public Account insert(Account account){
         Connection connection = ConnectionUtil.getConnection();
-            if (this.userExistCheck(account.getUsername()) != false){
+            if (this.userExistCheck(account.getUsername())){
                 //write some bs about how it exists already
                 return null;
             }
-            else if (account.getUsername().replaceAll(" ", "").length() < 1){
+            else if (account.getUsername().trim().isEmpty()){
                 //write some bs bout how the pass isn't long enough
                 return null;
             }
@@ -103,63 +103,38 @@ public class AccountDAO implements DAOInterface<Account> {
 
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
-                if (rs.next()){
-                    Account account = new Account(
-                            rs.getInt("account_id"),
-                            rs.getString("username"),
-                            rs.getString("password"));
+            if (rs.next()){
+                Account account = new Account(
+                        rs.getInt("account_id"),
+                        rs.getString("username"),
+                        rs.getString("password"));
                 
-                if (Objects.equals (username, account.getUsername()) && Objects.equals (password, account.getPassword()) && account.getAccount_id() == 1){
+                if (Objects.equals(username, account.getUsername()) && Objects.equals(password, account.getPassword())){
                     return account;
                 }
             }
         }
         catch(SQLException e){
+            System.out.println(e.getMessage());
         }
         return null;
     }
 
     public boolean userExistCheck(String username) {
-        String sql = "SELECT * FROM account WHERE username = ?";
+        String sql = "SELECT 1 FROM account WHERE username = ?";
         Connection conn = ConnectionUtil.getConnection();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, username);
-
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
-                }
-            } catch (SQLException e) {
-                System.out.println(e.getMessage());
-            }
+                return rs.next();
+            } 
         } 
         catch (SQLException e) {
             System.out.println(e.getMessage());
         }
         return false;
     }
-
-    // public void update(Account account){
-    //     Connection connection = ConnectionUtil.getConnection();
-    //     try {
-    //         //Write SQL logic here
-    //         String sql = "UPDATE account SET departure_city = ?, arrival_city = ? WHERE account_id = ?";
-    //         PreparedStatement ps = connection.prepareStatement(sql);
-
-    //         //write PreparedStatement setString and setInt methods here.
-    //         ps.setString(1, account.getDeparture_city());
-    //         ps.setString(2, account.getArrival_city());
-    //         ps.setInt(3, id);
-
-    //         ps.executeUpdate();
-    //     }catch(SQLException e){
-    //         System.out.println(e.getMessage());
-    //     }
-    // }
-
 }
-
 
     
 

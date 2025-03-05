@@ -11,7 +11,6 @@ import Model.Message;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class MessageDAO implements DAOInterface<Message>{
 
@@ -81,26 +80,28 @@ public class MessageDAO implements DAOInterface<Message>{
     
     public Message insert(Message message){
         Connection connection = ConnectionUtil.getConnection();
-            if (message.getPosted_by() < -1 ){
-                //write some bs about how the user doesn't exist
+            // Check if message text is empty
+            if (message.getMessage_text().trim().isEmpty()){
                 return null;
             }
-            else if (message.getMessage_text().replaceAll(" ", "").length() <=0){
-                //write some bs bout how the text is blank
-                return null;
-            }
-            else if (message.getMessage_text().length() >= 255){
-                //write some bs bout how the text length is too long
+            // Check if message text is too long
+            else if (message.getMessage_text().length() > 255){
                 return null;
             }
 
         try {
-            //Write SQL logic here. When inserting, you only need to define the departure_city and arrival_city
-            //values (two columns total!)
+            // Check if account exists
+            String checkSql = "SELECT 1 FROM account WHERE account_id = ?";
+            PreparedStatement checkPs = connection.prepareStatement(checkSql);
+            checkPs.setInt(1, message.getPosted_by());
+            ResultSet rs = checkPs.executeQuery();
+            if (!rs.next()) {
+                return null; // Account doesn't exist
+            }
+
             String sql = "INSERT INTO message(posted_by, message_text, time_posted_epoch) VALUES (?, ?, ?)" ;
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
-            //write ps's setString and setInt methods here.
             ps.setInt(1, message.getPosted_by());
             ps.setString(2, message.getMessage_text());
             ps.setLong(3, message.getTime_posted_epoch());
@@ -118,43 +119,37 @@ public class MessageDAO implements DAOInterface<Message>{
     }
 
     public boolean update(Message message){
-        if (this.messageExistCheck(0) == false){
-            //write some bs about how the user doesn't exist
+        // Check if message exists
+        if (this.getByID(message.getMessage_id()) == null){
             return false;
         }
-        else if (message.getMessage_text().replaceAll(" ", "").length() < 1){
-            //write some bs bout how the text is blank
+        // Check if message text is empty
+        else if (message.getMessage_text().trim().isEmpty()){
             return false;
         }
-        else if (message.getMessage_text().length() <= 255){
-            //write some bs bout how the text length is too long
+        // Check if message text is too long
+        else if (message.getMessage_text().length() > 255){
             return false;
         }
 
         Connection connection = ConnectionUtil.getConnection();
         try {
-        //Write SQL logic here
-        String sql = "UPDATE message SET message_text WHERE message_id = ?";
-        PreparedStatement ps = connection.prepareStatement(sql);
+            String sql = "UPDATE message SET message_text = ? WHERE message_id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
 
-        //write PreparedStatement setString and setInt methods here.
-        ps.setString(1, message.getMessage_text());
-        ps.setInt(2, message.getMessage_id());
+            ps.setString(1, message.getMessage_text());
+            ps.setInt(2, message.getMessage_id());
 
-        ps.executeUpdate();
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
         }
         catch(SQLException e){
-        System.out.println(e.getMessage());
-
+            System.out.println(e.getMessage());
         }
         return false;
     }
 
     public boolean delete(Message message){
-        // if (this.messageExistCheck(message.getMessage_id()) == false){
-        //     return true;
-        // }
-
         String sql = "DELETE FROM message WHERE message_id = ?";
         int rowsUpdated = 0;
         Connection conn = ConnectionUtil.getConnection();
@@ -165,26 +160,5 @@ public class MessageDAO implements DAOInterface<Message>{
             System.out.println(e.getMessage());
         }
         return rowsUpdated > 0;
-    }
-
-    public boolean messageExistCheck(int id) {
-        String sql = "SELECT * FROM message WHERE message_id = ?";
-        Connection conn = ConnectionUtil.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, id);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
-                }
-            } catch (SQLException e) {
-                System.out.println(e.getMessage());
-            }
-        } 
-        catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return false;
     }
 }
