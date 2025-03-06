@@ -17,11 +17,11 @@ public class MessageDAO implements DAOInterface<Message>{
     public List<Message> getAll(){
         Connection connection = ConnectionUtil.getConnection();
         List<Message> messages = new ArrayList<>();
-        try {
-            //Write SQL logic here
-            String sql = "SELECT * from message";
 
+        try {
+            String sql = "SELECT * from message";
             PreparedStatement ps = connection.prepareStatement(sql);
+
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
                 Message message = new Message(rs.getInt("message_id"), rs.getInt("posted_by"),
@@ -37,8 +37,8 @@ public class MessageDAO implements DAOInterface<Message>{
     public List<Message> getAllByAccountID(int id){
         Connection connection = ConnectionUtil.getConnection();
         List<Message> messages = new ArrayList<>();
+
         try {
-            //Write SQL logic here
             String sql = "SELECT * from message WHERE posted_by = ?";
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setInt(1, id);
@@ -57,13 +57,10 @@ public class MessageDAO implements DAOInterface<Message>{
     
     public Message getByID(int id){
         Connection connection = ConnectionUtil.getConnection();
-        try {
-            //Write SQL logic here
-            String sql = "SELECT * FROM message WHERE message_id = ?";
-            
-            PreparedStatement ps = connection.prepareStatement(sql);
-            //write ps's setString and setInt methods here.
 
+        try {
+            String sql = "SELECT * FROM message WHERE message_id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
             ps.setInt(1, id);
 
             ResultSet rs = ps.executeQuery();
@@ -80,33 +77,25 @@ public class MessageDAO implements DAOInterface<Message>{
     
     public Message insert(Message message){
         Connection connection = ConnectionUtil.getConnection();
-            // Check if message text is empty
-            if (message.getMessage_text().trim().isEmpty()){
-                return null;
+            if (!this.userExistCheck(message.getPosted_by())){
+                return null; //fails if the account doesn't exist
             }
-            // Check if message text is too long
+            else if (message.getMessage_text().trim().isEmpty()){
+                return null; //fails if the message is empty
+            }
             else if (message.getMessage_text().length() > 255){
-                return null;
+                return null; //fails if the message length is greater than 255 char limit
             }
 
         try {
-            // Check if account exists
-            String checkSql = "SELECT 1 FROM account WHERE account_id = ?";
-            PreparedStatement checkPs = connection.prepareStatement(checkSql);
-            checkPs.setInt(1, message.getPosted_by());
-            ResultSet rs = checkPs.executeQuery();
-            if (!rs.next()) {
-                return null; // Account doesn't exist
-            }
-
             String sql = "INSERT INTO message(posted_by, message_text, time_posted_epoch) VALUES (?, ?, ?)" ;
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             ps.setInt(1, message.getPosted_by());
             ps.setString(2, message.getMessage_text());
             ps.setLong(3, message.getTime_posted_epoch());
-
             ps.executeUpdate();
+
             ResultSet pkeyResultSet = ps.getGeneratedKeys();
             if(pkeyResultSet.next()){
                 int generated_message_id = (int) pkeyResultSet.getLong(1);
@@ -118,47 +107,60 @@ public class MessageDAO implements DAOInterface<Message>{
         return null;
     }
 
-    public boolean update(Message message){
-        // Check if message exists
+    public boolean update(Message message){       
         if (this.getByID(message.getMessage_id()) == null){
-            return false;
+            return false; //fails if the message doesn't exist
         }
-        // Check if message text is empty
         else if (message.getMessage_text().trim().isEmpty()){
-            return false;
+            return false; //fails if the new message is empty 
         }
-        // Check if message text is too long
         else if (message.getMessage_text().length() > 255){
-            return false;
+            return false; //fails if the message length is greater than 255 char limit
         }
 
+        int rowsUpdated = 0;
         Connection connection = ConnectionUtil.getConnection();
+
         try {
             String sql = "UPDATE message SET message_text = ? WHERE message_id = ?";
             PreparedStatement ps = connection.prepareStatement(sql);
-
             ps.setString(1, message.getMessage_text());
             ps.setInt(2, message.getMessage_id());
-
-            int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0;
-        }
-        catch(SQLException e){
-            System.out.println(e.getMessage());
-        }
-        return false;
-    }
-
-    public boolean delete(Message message){
-        String sql = "DELETE FROM message WHERE message_id = ?";
-        int rowsUpdated = 0;
-        Connection conn = ConnectionUtil.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, message.getMessage_id());
             rowsUpdated = ps.executeUpdate();
-        } catch (SQLException e) {
+        }catch(SQLException e){
             System.out.println(e.getMessage());
         }
         return rowsUpdated > 0;
+    }
+
+    public boolean delete(Message message){
+        int rowsUpdated = 0;
+        Connection connection = ConnectionUtil.getConnection();
+
+        try {
+            String sql = "DELETE FROM message WHERE message_id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, message.getMessage_id());
+            rowsUpdated = ps.executeUpdate();
+        }catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return rowsUpdated > 0;
+    }
+
+    public boolean userExistCheck(int id) {
+        Connection connection = ConnectionUtil.getConnection();
+
+        try {
+            String sql = "SELECT 1 FROM account WHERE account_id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql); 
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            } 
+        }catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
     }
 }

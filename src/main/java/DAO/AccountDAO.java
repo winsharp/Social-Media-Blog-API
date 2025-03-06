@@ -18,11 +18,11 @@ public class AccountDAO implements DAOInterface<Account> {
     public List<Account> getAll(){
         Connection connection = ConnectionUtil.getConnection();
         List<Account> accounts = new ArrayList<>();
-        try {
-            //Write SQL logic here
-            String sql = "SELECT * from account";
 
+        try {
+            String sql = "SELECT * from account";
             PreparedStatement ps = connection.prepareStatement(sql);
+
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
                 Account account = new Account(rs.getInt("account_id"), rs.getString("username"),
@@ -37,13 +37,10 @@ public class AccountDAO implements DAOInterface<Account> {
     
     public Account getByID(int id){
         Connection connection = ConnectionUtil.getConnection();
-        try {
-            //Write SQL logic here
-            String sql = "SELECT * FROM account WHERE account_id = ?";
-            
-            PreparedStatement ps = connection.prepareStatement(sql);
-            //write ps's setString and setInt methods here.
 
+        try {
+            String sql = "SELECT * FROM account WHERE account_id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
             ps.setInt(1, id);
 
             ResultSet rs = ps.executeQuery();
@@ -60,30 +57,24 @@ public class AccountDAO implements DAOInterface<Account> {
     
     public Account insert(Account account){
         Connection connection = ConnectionUtil.getConnection();
-            if (this.userExistCheck(account.getUsername())){
-                //write some bs about how it exists already
-                return null;
+
+            if (this.userExistCheck(account.getUsername())){     
+                return null; //fail to create account if username exists
             }
             else if (account.getUsername().trim().isEmpty()){
-                //write some bs bout how the pass isn't long enough
-                return null;
+                return null; //fail to create account is username is blank
             }
             else if (account.getPassword().length() < 4){
-                //write some bs bout how the pass isn't long enough
-                return null;
+                return null; //fail to create account if password length < 4 characters
             }
 
         try {
-            //Write SQL logic here. When inserting, you only need to define the departure_city and arrival_city
-            //values (two columns total!)
             String sql = "INSERT INTO account (username, password) VALUES (?, ?)" ;
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
-            //write ps's setString and setInt methods here.
             ps.setString(1, account.getUsername());
             ps.setString(2, account.getPassword());
-
             ps.executeUpdate();
+
             ResultSet pkeyResultSet = ps.getGeneratedKeys();
             if(pkeyResultSet.next()){
                 int generated_account_id = (int) pkeyResultSet.getLong(1);
@@ -97,11 +88,12 @@ public class AccountDAO implements DAOInterface<Account> {
 
     public Account validateLogin(String username, String password){
         Connection connection = ConnectionUtil.getConnection();
+
         try {
             String sql = "SELECT * FROM account WHERE username = ?";
             PreparedStatement ps = connection.prepareStatement(sql);
-
             ps.setString(1, username);
+
             ResultSet rs = ps.executeQuery();
             if (rs.next()){
                 Account account = new Account(
@@ -113,23 +105,23 @@ public class AccountDAO implements DAOInterface<Account> {
                     return account;
                 }
             }
-        }
-        catch(SQLException e){
+        }catch(SQLException e){
             System.out.println(e.getMessage());
         }
         return null;
     }
 
     public boolean userExistCheck(String username) {
-        String sql = "SELECT 1 FROM account WHERE username = ?";
-        Connection conn = ConnectionUtil.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        Connection connection = ConnectionUtil.getConnection();
+
+        try {
+            String sql = "SELECT 1 FROM account WHERE username = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             } 
-        } 
-        catch (SQLException e) {
+        }catch (SQLException e) {
             System.out.println(e.getMessage());
         }
         return false;

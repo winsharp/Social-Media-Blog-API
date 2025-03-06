@@ -2,9 +2,7 @@ package Service;
 
 import java.util.List;
 
-import DAO.AccountDAO;
 import DAO.MessageDAO;
-import Model.Account;
 import Model.Message;
 
 
